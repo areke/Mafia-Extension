@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <title>mafia</title>
+    <script src="getGame.js"></script>
+  </head>
+  <body>
+    <h1>Mafia</h1>
+    <table id = "mafiaCandidateTable">
+    </table>
+  </body>
+  <script type = "text/javascript">
+  function getData() {
+    $.ajax({
+        type: "GET",
+        url: "games.json",
+        success: function(data) {
+        	console.log(data);
+        	console.log("hi");
+            //userData = eval(data);
+            //console.log(userData)
+            //setTimeout(begin, 5000);
+        }
+    })
+}
+getData();
+  </script>
+</html>

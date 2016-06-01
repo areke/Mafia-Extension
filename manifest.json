@@ -1,0 +1,16 @@
+{
+	"manifest_version": 2,
+
+	"name": "mafia",
+	"version": "1.0",
+
+	"browser_action": {
+	"default_popup": "mafia.html"
+	},
+	"permissions": ["tabs", "http://*/*"],
+	"content_scripts" : [{
+        "matches" : [ "https://epicmafia.com/*"],
+        "js" : ["jquery.min.js", "getGame.js"]
+    }],
+    "web_accessible_resources": ["script.js", "games.json"]
+}
