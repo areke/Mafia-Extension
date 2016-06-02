@@ -64,9 +64,21 @@ function convertTime(time) {
 	return t;
 }
 
+function getUsers() {
+	var $scope = angular.element(document.body).injector().get('$rootScope').$$childHead;
+	var fakeUsersList = $scope.current_users;
+	var users = [];
+	for (var u in fakeUsersList) {
+		if (fakeUsersList.hasOwnProperty(u)) {
+			users.push(u);
+		}
+	}
+	return users;
+}
+
 function trackVotes(shift) {
 	var $scope = angular.element(document.body).injector().get('$rootScope').$$childHead;
-	var users = $scope.user_list;
+	var users = getUsers();
 	var userVotes = {};
 	for (var i = 0; i < users.length; i++) {
 		userVotes[users[i]] = 0;
@@ -103,7 +115,7 @@ function trackVotes(shift) {
 			return a[0]-b[0];
 		}
 		else {
-			if ($scope.users[$scope.user].role in mafiaRoles) {
+			if ($scope.current_users[$scope.user].role in mafiaRoles) {
 				return a[1]-b[1];
 			}
 			return b[1]-a[1];
@@ -112,24 +124,29 @@ function trackVotes(shift) {
 	if (no) {
 		return voteCandidates[($scope.screens.length + shift) % users.length];
 	}
-	return voteCandidates[voteCandidates.length-1][1];
+	return voteCandidates[voteCandidates.length-1][2];
 }
 
 function antiveg() {
 	injector = angular.element(document.body).injector();
 	var $scope = angular.element(document.body).injector().get('$rootScope').$$childHead;
+	var users = getUsers();
 	var meets = $scope.meetings;
 	socket = injector.get('socket');
 	for (var i = 0; i < users.length; i++) {
+		if ($scope.kicks_needed != 0) return;
 		var t = trackVotes(i);
-		if (typeof($scope.current_meet != "undefined") && $scope.current_meet != null) {
+		if (typeof($scope.current_meet != "undefined") && $scope.current_meet != null && typeof(t) != undefined) {
 			socket.sendcmd("point", {user: $scope.user, meet: $scope.current_meet, unpoint: false, target: t});
 		}
-		else if (typeof($scope.selected_meet != "undefined") && $scope.selected_meet != null) {
+		else if (typeof($scope.selected_meet != "undefined") && $scope.selected_meet != null && typeof(t) != undefined) {
 			socket.sendcmd("point", {user: $scope.user, meet: $scope.selected_meet, unpoint: false, target: t});
 		}
+		else if ($scope.current_screen.name.split(" ")[0] == "Day" && typeof(t) != undefined) {
+			socket.sendcmd("point", {user: $scope.user, meet: "village", unpoint: false, target: t});
+		}
 		else {
-			for (var m in meets) {
+			for (var m in meets && typeof(t) != undefined) {
 				socket.sendcmd("point", {user: $scope.user, meet: m, unpoint: false, target: t});
 			}
 		}
@@ -142,27 +159,26 @@ function begin(timeout) {
 	*/
 	var $scope = angular.element(document.body).injector().get('$rootScope').$$childHead;
 	if ($scope.kicks_needed == 0 && $scope.current_screen.name != "Pregame") setTimeout(antiveg, 8000);
-	var userList = $scope.user_list;
+	var userList = getUsers();
 	var screens = $scope.screens;
 	var currentScreen = $scope.current_screen;
 	var userMessages = {};
+	console.log(timeout);
 	if (timeout > 0) {
 		if (screens.length < 2) {
-			setTimeout(begin, timeout);
+			setTimeout(function() {begin(timeout)}, timeout);
 			return;
 		}
 		else {
-			setTimeout(begin, timeout);
+			setTimeout(function() {begin(timeout)}, timeout);
 		}
 	}
 	var cnt = 0;
-	//console.log(screens);
 	for (var i = 0; i < 20; i++) {
 		if (!(i in screens)) break;
 		if (typeof(screens[i].chat) == "undefined") continue;
 		if (screens[i].name.split(" ")[0] == "Day") {
 			var talk = $(screens[i].chat).filter(".talk");
-			//console.log(messages);
 			for (var j = 0; j < talk.length; j++) {
 				var u = $($(talk)[j]).find(".talk_username")[0].value;
 				var m = $($(talk)[j]).find(".msg")[0].innerHTML;
@@ -211,7 +227,6 @@ function begin(timeout) {
 			}
 		}
 	}
-	//console.log(userMessages)
 	var tot = 0;
 	var mafiaCandidates = [];
 	for (var i = 0; i < userList.length; i++) {
@@ -240,9 +255,6 @@ function begin(timeout) {
     mafiaCandidates.sort(function(a, b) {
 		return a[0]-b[0];
 	});
-	//console.log(userMessages);
-	//console.log(mafiaCandidates);
-	//console.log(userMessages);
 	var html = "";
 	var mafPercentages = {};
 	for (var i = 0; i < mafiaCandidates.length; i++) {
